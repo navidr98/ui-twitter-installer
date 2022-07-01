@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: server
+spec:
+  clusterIP: None
+  selector:
+    app: server
+  ports:
+  - name: akka
+    port: 2550
+    targetPort: 2550
+  - name: http
+    port: 8888
+    targetPort: 8888
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server-connection
+spec:
+  selector:
+    matchLabels:
+      app: server
+  template:
+    metadata:
+      labels:
+        app: server
+    spec:
+      containers:
+      - name: server-connection
+        image: sbaneshi/ui-twitter-server:1.0.2
+        ports:
+        - containerPort: 8888
+          name: http
+        - containerPort: 2550
+          name: cluster-port
+        env:
+        - name: SERVER_PORT
+          value: "8000"
+        - name: SPRING_PROFILES_ACTIVE
+          value: connection
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:oracle:thin:@//192.168.122.1:1521/xe
+        - name: SPRING_DATASOURCE_USERNAME
+          value: ui
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: ui
+        - name: GRAYLOG_IP
+          value: 192.168.122.1
+        - name: GRAYLOG_PORT
+          value: "12201"
+        - name: CLUSTER_IP
+          value: server.ui-twitter.svc.cluster.local
+        - name: CLUSTER_PORT
+          value: "2550"
+        - name: CLUSTER_SEED
+          value: server.ui-twitter.svc.cluster.local:2550
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server-user
+spec:
+  selector:
+    matchLabels:
+      app: server-user
+  replicas: 4
+  template:
+    metadata:
+      labels:
+        app: server-user
+    spec:
+      containers:
+      - name: server-user
+        image: sbaneshi/ui-twitter-server:1.0.2
+        ports:
+        - containerPort: 2551
+          name: cluster-port
+        env:
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: SERVER_PORT
+          value: "8000"
+        - name: SPRING_PROFILES_ACTIVE
+          value: user
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:oracle:thin:@//192.168.122.1:1521/xe
+        - name: SPRING_DATASOURCE_USERNAME
+          value: ui
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: ui
+        - name: GRAYLOG_IP
+          value: 192.168.122.1
+        - name: GRAYLOG_PORT
+          value: "12201"
+        - name: CLUSTER_IP
+          value: $(MY_POD_IP)
+        - name: CLUSTER_PORT
+          value: "2551"
+        - name: CLUSTER_SEED
+          value: server.ui-twitter.svc.cluster.local:2550
+

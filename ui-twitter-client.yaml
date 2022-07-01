@@ -1,0 +1,29 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ui-twitter-client
+spec:
+  selector:
+    matchLabels:
+      app: ui-twitter-client
+  template:
+    metadata:
+      labels:
+        app: ui-twitter-client
+    spec:
+      containers:
+      - name: ui-twitter-client
+        image: sbaneshi/ui-twitter-client:1.0.1
+        env:
+        - name: SERVER_PORT
+          value: "8000"
+        - name: UI_TWITTER_CLIENT_ENDPOINT_URL
+          value: server.ui-twitter.svc.cluster.local
+        - name: UI_TWITTER_CLIENT_ENDPOINT_PORT
+          value: "8888"
+        - name: GRAYLOG_IP
+          value: 192.168.122.1
+        - name: GRAYLOG_PORT
+          value: "12201"
+
